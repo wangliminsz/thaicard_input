@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Google 地图</title>
+    <style type="text/css">
+      html {
+        height: 100%
+      }
+
+      body {
+        height: 100%;
+        margin: 0px;
+        padding: 0px
+      }
+
+      #mapPage {
+        height: 100%;
+        position: relative;
+      }
+
+      #container {
+        height: 100%
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id='mapPage'>
+      <div id='container'></div>
+    </div>
+  </body>
+
+  <!-- 微信 JS-SDK 如果不需要兼容小程序，则无需引用此 JS 文件 -->
+  <!-- <script type="text/javascript" src="https://res.wx.qq.com/open/js/jweixin-1.4.0.js"></script> -->
+
+  <!-- uni 的 SDK -->
+  <script type="text/javascript" src="https://js.cdn.aliyun.dcloud.net.cn/dev/uni-app/uni.webview.1.5.2.js">
+  </script>
+
+  <!-- 谷歌地图 Google Maps API -->
+  <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCATQOeaNUfVnUCoOkr3DE4Ss8pPhtjlkg"></script> -->
+  <!-- Replace YOUR_API_KEY with your actual API key -->
+
+  <!-- <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCATQOeaNUfVnUCoOkr3DE4Ss8pPhtjlkg&callback=initMap"></script> -->
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCATQOeaNUfVnUCoOkr3DE4Ss8pPhtjlkg&callback=initMap"
+    defer></script>
+
+  <!-- draggabilly.pkgd.min -->
+  <script src="./draggabilly.pkgd.min.js"></script>
+
+  <script type="text/javascript">
+    document.addEventListener('UniAppJSBridgeReady', function() {
+
+      var gmap; // Define the map variable in a scope accessible by both functions
+      var gmarker;
+      var isInitialized = false; // Flag to track initialization status
+
+      // Usage example
+      initMap().then(function(res) {
+        console.log('Map initialization successful');
+        isInitialized = true; // Update the initialization status
+        console.log('promise---------------->', res)
+        gmap = res[0]
+        gmarker = res[1]
+      }).catch(function(error) {
+        console.error('Map initialization failed:', error);
+      });
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      window.top.moveGView = function(e) {
+
+        if (!isInitialized) {
+          return; // Exit the function if initialization is not yet complete
+        }
+
+        var values = e.split(',');
+        var value1 = values[0].trim();
+        var value2 = values[1].trim();
+
+        var lat = parseFloat(value1);
+        var lng = parseFloat(value2);
+
+        console.log('google -##-', lat, lng)
+        console.log(isInitialized)
+        console.log('map----------------->', gmap)
+
+        var newCenter = new google.maps.LatLng(lat, lng);
+        gmap.setCenter(newCenter);
+        gmap.setZoom(16);
+      };
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      window.top.clickGMap = function(e) {
+        // This function will be called when a click or tap event occurs on the map
+        console.log('Map clicked', e.latLng.lat(), e.latLng.lng());
+        var lat = e.latLng.lat()
+        var lng = e.latLng.lng()
+
+        // Add marker
+        if (gmarker) {
+          console.log('GMap Marker --- ');
+          gmarker.setMap(null); // Remove existing marker
+        }
+
+        gmarker = new google.maps.Marker({
+          position: e.latLng,
+          map: gmap
+        });
+
+        // Send message to other parts of your application
+        var message = {
+          lat: lat,
+          lng: lng
+        };
+        window.top.postMessage(message, "*");
+
+      };
+
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    });
+
+    function initMap() {
+      return new Promise(function(resolve, reject) {
+        // Get the URL parameters
+        let params = new URLSearchParams(window.location.search);
+
+        // Retrieve the lng and lat values
+        let lng = parseFloat(params.get('lng'));
+        let lat = parseFloat(params.get('lat'));
+
+        // Check if lng and lat are valid numbers
+        if (isNaN(lng) || isNaN(lat)) {
+          reject(new Error('Invalid lng or lat values'));
+          return;
+        }
+
+        // Create the map using the retrieved lng and lat
+        var map = new google.maps.Map(document.getElementById('container'), {
+          center: {
+            lat: lat,
+            lng: lng
+          },
+          zoom: 16,
+          zoomControl: false, // Disable zoom control buttons
+          streetViewControl: false // Disable Street View Pegman
+        });
+
+        // Enable zooming with the mouse wheel
+        map.setOptions({
+          scrollwheel: true,
+          draggable: true,
+        });
+
+        map.addListener("click", function(event) {
+          // Handle the map click event here
+          // clickMap(event.latLng);
+          event.stop();
+          window.top.clickGMap(event);
+        });
+
+        // Create the marker
+        var marker = new google.maps.Marker({
+          position: {
+            lat: lat,
+            lng: lng
+          },
+          map: map
+        });
+
+        console.log(lat, lng, '<<-------------------');
+
+        // Resolve the promise to indicate success
+        // resolve();
+        // resolve(map, marker); -- wrong
+        resolve([map, marker]);
+
+        // ~~~~~~~~~~~~~~~~~~~~~~~~
+
+        // ~~~~~~~~~~~~~~~~~~~~~~~~
+
+      });
+    }
+  </script>
+
+</html>
